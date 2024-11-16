@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Formulário de Desafio de Solução</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            line-height: 1.6;
+        }
+        .form-section {
+            margin-bottom: 30px;
+            padding: 15px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        .form-section h2 {
+            margin-top: 0;
+        }
+        .tooltip {
+            position: relative;
+            display: inline-block;
+            cursor: pointer;
+            color: blue;
+            text-decoration: underline;
+        }
+        .tooltip .tooltiptext {
+            visibility: hidden;
+            width: 250px;
+            background-color: #f9f9f9;
+            color: #333;
+            text-align: left;
+            border-radius: 5px;
+            padding: 10px;
+            position: absolute;
+            z-index: 1;
+            bottom: 125%;
+            left: 50%;
+            margin-left: -125px;
+            border: 1px solid #ccc;
+            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+        }
+        .tooltip:hover .tooltiptext {
+            visibility: visible;
+        }
+        label {
+            display: block;
+            margin-top: 10px;
+        }
+        input[type="text"], textarea {
+            width: calc(100% - 120px);
+            padding: 8px;
+            margin-top: 5px;
+            margin-bottom: 15px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        button {
+            margin-left: 10px;
+            padding: 5px 10px;
+            border: none;
+            background-color: #007BFF;
+            color: white;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .over-limit {
+            border-color: red;
+        }
+        /* Modal styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgb(0, 0, 0);
+            background-color: rgba(0, 0, 0, 0.4);
+            padding-top: 60px;
+        }
+        .modal-content {
+            background-color: #fefefe;
+            margin: 5% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+            max-width: 600px;
+            border-radius: 10px;
+        }
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+        }
+        .close:hover,
+        .close:focus {
+            color: black;
+            text-decoration: none;
+            cursor: pointer;
+        }
+    </style>
+    <script>
+        let currentEditId = null;
+
+        function copyToClipboard(id) {
+            const input = document.getElementById(id);
+            input.select();
+            document.execCommand("copy");
+            alert("Texto copiado: " + input.value);
+        }
+
+        function checkCharacterLimit(id, limit) {
+            const input = document.getElementById(id);
+            if (input.value.length > limit) {
+                input.classList.add('over-limit');
+            } else {
+                input.classList.remove('over-limit');
+            }
+        }
+
+        function openEditModal(id, limit) {
+            currentEditId = id;
+            const input = document.getElementById(id);
+            const modal = document.getElementById("editModal");
+            const modalTextarea = document.getElementById("modalTextarea");
+            const charCount = document.getElementById("charCount");
+
+            modalTextarea.value = input.value;
+            charCount.textContent = `${modalTextarea.value.length}/${limit}`;
+            modalTextarea.setAttribute('data-limit', limit);
+            modal.style.display = "block";
+        }
+
+        function closeEditModal() {
+            const modal = document.getElementById("editModal");
+            modal.style.display = "none";
+        }
+
+        function saveEdit() {
+            const modalTextarea = document.getElementById("modalTextarea");
+            const input = document.getElementById(currentEditId);
+            input.value = modalTextarea.value;
+            checkCharacterLimit(currentEditId, modalTextarea.getAttribute('data-limit'));
+            closeEditModal();
+        }
+
+        function updateCharCount() {
+            const modalTextarea = document.getElementById("modalTextarea");
+            const charCount = document.getElementById("charCount");
+            const limit = modalTextarea.getAttribute('data-limit');
+            charCount.textContent = `${modalTextarea.value.length}/${limit}`;
+
+            if (modalTextarea.value.length > limit) {
+                charCount.style.color = 'red';
+            } else {
+                charCount.style.color = 'black';
+            }
+        }
+
+        function saveAsJSON() {
+            const formData = {};
+            document.querySelectorAll('input[type="text"], textarea').forEach(input => {
+                formData[input.name] = input.value;
+            });
+
+            // Obter o valor do campo "Desafio" para usar no nome do arquivo
+            const desafio = document.getElementById('desafio').value || 'desafio';
+            const fileName = `formDesafio_${desafio.replace(/\s+/g, '_')}.json`;
+
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(formData, null, 2));
+            const downloadAnchorNode = document.createElement('a');
+            downloadAnchorNode.setAttribute("href", dataStr);
+            downloadAnchorNode.setAttribute("download", fileName);
+            document.body.appendChild(downloadAnchorNode);
+            downloadAnchorNode.click();
+            downloadAnchorNode.remove();
+        }
+
+        function loadFromJSON(event) {
+            const file = event.target.files[0];
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const data = JSON.parse(e.target.result);
+                for (const key in data) {
+                    if (data.hasOwnProperty(key)) {
+                        const input = document.querySelector(`[name="${key}"]`);
+                        if (input) {
+                            input.value = data[key];
+                            checkCharacterLimit(input.id, input.getAttribute('data-limit'));
+                        }
+                    }
+                }
+            };
+            reader.readAsText(file);
+        }
+    </script>
+</head>
+<body>
+
+    <h1>Formulário de Desafio de Solução</h1>
+
+    <div class="form-section">
+        <h2>Desafio e Solução</h2>
+        <label for="desafio">Desafio
+            <span class="tooltip">[?]
+                <span class="tooltiptext">Descreva o desafio enfrentado.</span>
+            </span>
+        </label>
+        <input type="text" id="desafio" name="desafio" data-limit="100" oninput="checkCharacterLimit('desafio', 100)">
+        <button onclick="copyToClipboard('desafio')">Copiar</button>
+        <button onclick="openEditModal('desafio', 100)">Editar</button>
+
+        <label for="produto-solucao">Produto/Solução
+            <span class="tooltip">[?]
+                <span class="tooltiptext">Descreva o produto ou solução proposta.</span>
+            </span>
+        </label>
+        <input type="text" id="produto-solucao" name="produto-solucao" data-limit="100" oninput="checkCharacterLimit('produto-solucao', 100)">
+        <button onclick="copyToClipboard('produto-solucao')">Copiar</button>
+        <button onclick="openEditModal('produto-solucao', 100)">Editar</button>
+
+        <label for="publico-desafio">Público que tem o desafio
+            <span class="tooltip">[?]
+                <span class="tooltiptext">Identifique o público que enfrenta o desafio.</span>
+            </span>
+        </label>
+        <input type="text" id="publico-desafio" name="publico-desafio" data-limit="100" oninput="checkCharacterLimit('publico-desafio', 100)">
+        <button onclick="copyToClipboard('publico-desafio')">Copiar</button>
+        <button onclick="openEditModal('publico-desafio', 100)">Editar</button>
+
+        <label for="atua-frequenta">Que está/atua/frequenta/atende
+            <span class="tooltip">[?]
+                <span class="tooltiptext">Descreva onde o público atua ou frequenta.</span>
+            </span>
+        </label>
+        <input type="text" id="atua-frequenta" name="atua-frequenta" data-limit="100" oninput="checkCharacterLimit('atua-frequenta', 100)">
+        <button onclick="copyToClipboard('atua-frequenta')">Copiar</button>
+        <button onclick="openEditModal('atua-frequenta', 100)">Editar</button>
+
+        <label for="precisa">E precisa: aumentar, diminuir (o/a)
+            <span class="tooltip">[?]
+                <span class="tooltiptext">Indique o que precisa ser aumentado ou diminuído.</span>
+            </span>
+        </label>
+        <input type="text" id="precisa" name="precisa" data-limit="100" oninput="checkCharacterLimit('precisa', 100)">
+        <button onclick="copyToClipboard('precisa')">Copiar</button>
+        <button onclick="openEditModal('precisa', 100)">Editar</button>
+
+        <label for="atua-mercado">Que atua em (mercado/setor/segmento/nicho)
+            <span class="tooltip">[?]
+                <span class="tooltiptext">Especifique o mercado ou segmento de atuação.</span>
+            </span>
+        </label>
+        <input type="text" id="atua-mercado" name="atua-mercado" data-limit="100" oninput="checkCharacterLimit('atua-mercado', 100)">
+        <button onclick="copyToClipboard('atua-mercado')">Copiar</button>
+        <button onclick="openEditModal('atua-mercado', 100)">Editar</button>
+
+        <label for="busca">E busca
+            <span class="tooltip">[?]
+                <span class="tooltiptext">Descreva o que está sendo buscado.</span>
+            </span>
+        </label>
+        <input type="text" id="busca" name="busca" data-limit="100" oninput="checkCharacterLimit('busca', 100)">
+        <button onclick="copyToClipboard('busca')">Copiar</button>
+        <button onclick="openEditModal('busca', 100)">Editar</button>
+
+        <label for="por-meio">Por meio de
+            <span class="tooltip">[?]
+                <span class="tooltiptext">Indique o meio pelo qual busca atingir o objetivo (lucratividade, visibilidade, etc.).</span>
+            </span>
+        </label>
+        <input type="text" id="por-meio" name="por-meio" data-limit="100" oninput="checkCharacterLimit('por-meio', 100)">
+        <button onclick="copyToClipboard('por-meio')">Copiar</button>
+        <button onclick="openEditModal('por-meio', 100)">Editar</button>
+
+        <label for="objetivo-especifico">Com o objetivo de
+            <span class="tooltip">[?]
+                <span class="tooltiptext">Descreva o objetivo específico.</span>
+            </span>
+        </label>
+        <input type="text" id="objetivo-especifico" name="objetivo-especifico" data-limit="100" oninput="checkCharacterLimit('objetivo-especifico', 100)">
+        <button onclick="copyToClipboard('objetivo-especifico')">Copiar</button>
+        <button onclick="openEditModal('objetivo-especifico', 100)">Editar</button>
+
+        <label for="realizar">Para realizar
+            <span class="tooltip">[?]
+                <span class="tooltiptext">Descreva o que se pretende realizar.</span>
+            </span>
+        </label>
+        <input type="text" id="realizar" name="realizar" data-limit="100" oninput="checkCharacterLimit('realizar', 100)">
+        <button onclick="copyToClipboard('realizar')">Copiar</button>
+        <button onclick="openEditModal('realizar', 100)">Editar</button>
+
+        <label for="periodo">No período de
+            <span class="tooltip">[?]
+                <span class="tooltiptext">Indique o período de tempo (dias, semanas, meses, anos).</span>
+            </span>
+        </label>
+        <input type="text" id="periodo" name="periodo" data-limit="100" oninput="checkCharacterLimit('periodo', 100)">
+        <button onclick="copyToClipboard('periodo')">Copiar</button>
+        <button onclick="openEditModal('periodo', 100)">Editar</button>
+
+        <label for="disposto-pagar">E está disposto a pagar
+            <span class="tooltip">[?]
+                <span class="tooltiptext">Indique quanto está disposto a pagar.</span>
+            </span>
+        </label>
+        <input type="text" id="disposto-pagar" name="disposto-pagar" data-limit="100" oninput="checkCharacterLimit('disposto-pagar', 100)">
+        <button onclick="copyToClipboard('disposto-pagar')">Copiar</button>
+        <button onclick="openEditModal('disposto-pagar', 100)">Editar</button>
+
+        <label for="gera">Por que gera
+            <span class="tooltip">[?]
+                <span class="tooltiptext">Descreva o que isso gera.</span>
+            </span>
+        </label>
+        <input type="text" id="gera" name="gera" data-limit="100" oninput="checkCharacterLimit('gera', 100)">
+        <button onclick="copyToClipboard('gera')">Copiar</button>
+        <button onclick="openEditModal('gera', 100)">Editar</button>
+
+        <label for="solucao-fara">E a solução fará gerar
+            <span class="tooltip">[?]
+                <span class="tooltiptext">Descreva o que a solução fará gerar.</span>
+            </span>
+        </label>
+        <input type="text" id="solucao-fara" name="solucao-fara" data-limit="100" oninput="checkCharacterLimit('solucao-fara', 100)">
+        <button onclick="copyToClipboard('solucao-fara')">Copiar</button>
+        <button onclick="openEditModal('solucao-fara', 100)">Editar</button>
+    </div>
+
+    <!-- Modal for editing text -->
+    <div id="editModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeEditModal()">&times;</span>
+            <h2>Editar Texto</h2>
+            <textarea id="modalTextarea" oninput="updateCharCount()" style="width: 100%; height: 150px;"></textarea>
+            <p id="charCount">0/0</p>
+            <button onclick="saveEdit()">Salvar</button>
+            <button onclick="closeEditModal()">Cancelar</button>
+        </div>
+    </div>
+
+    <div class="form-section">
+        <h2>Salvar e Carregar Dados</h2>
+        <button onclick="saveAsJSON()">Salvar como JSON</button>
+        <input type="file" accept=".json" onchange="loadFromJSON(event)">
+    </div>
+
+</body>
+</html>
